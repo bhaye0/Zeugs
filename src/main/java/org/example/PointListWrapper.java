@@ -22,7 +22,7 @@ public class PointListWrapper {
     }
 
     public void getPointTriple(int i) {
-        
+
     }
 
     public Point searchPoint(int x, int y) {
