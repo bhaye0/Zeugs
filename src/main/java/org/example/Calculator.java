@@ -1,41 +1,4 @@
-
-Suchen
-
-
-
-        Machen wir
-        Bildanhang
-        Bildanhang
-        Das sieht ja gut aus 👍
-        Ja, hab selten so lecker gegessen
-        Guten Morgen. Geht es euch gut?😘
-        Ja und dir 😘
-        Ja, bei uns ist alles prima
-        Wir fahren gleich nach Weimar
-        Dann viel Spaß 😘
-        Danke. Euch auch😘
-        Bildanhang
-        Bildanhang
-        Bildanhang
-        Bildanhang
-        Bildanhang
-        Bildanhang
-        Bildanhang
-        Sehr schön.
-        Ja... Wobei Weimar ansonsten jetzt nicht so toll ist. Außer einer Stadtführung kann man da nicht allzu viel machen
-        Achso, wolltest du gleich nochmal mit den Kindern sprechen?
-        Melde mich gleich
-        Geht's euch gut?😘
-        Ja und dir? 😘
-        Auch. Wir nähern uns der Heimat. War macht ihr Schönes?
-        Gerade ein bisschen ausruhen.
-        Wir waren heute früh auf dem Trödelmarkt und bei meiner Mutter.
-        Wann kommt ihr denn ungefähr an?
-        Bin denke ich mal gegen 7 Zuhause
-        OK 😘
-        Bin kurz nach 7 da
-        https://www.danisch.de/blog/2022/05/29/big-trouble-in-little-flensburg/
-        package propra22.q5371210.CHGO.model;
+package propra22.q5371210.CHGO.model;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -45,8 +8,8 @@ import java.util.ListIterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.example.PointPair;
 import org.example.PointAttributes;
-import org.example.PointTriple;
 import propra22.interfaces.IHullCalculator;
 
 public class Calculator implements IHullCalculator {
@@ -55,6 +18,7 @@ public class Calculator implements IHullCalculator {
     LinkedList<PointAttributes> contourPolygonList;
     LinkedList<PointAttributes> convexHullList;
     LinkedList<PointAttributes> removeList ;
+    int[][] convexHull;
 
     public Calculator() {
         this.setOfPoints = new SetOfPoints();
@@ -134,79 +98,106 @@ public class Calculator implements IHullCalculator {
 
     @Override
     public int[][] getConvexHull() {
+
         int[][] sortedPoints = setOfPoints.getSortedArray();
         ContourPolygon contourPolygon = new ContourPolygon();
         contourPolygonList = contourPolygon.calculateContourPolygon(sortedPoints);
 
-        convexHullList = (contourPolygonList.size() <= 2) ?
-            contourPolygonList :
-            rekursiveBerechnung(contourPolygonList);
+        if (contourPolygonList.size() <= 2) {
+            convexHullList = contourPolygonList;
+        }
+        else {
 
-        int[][] convexHull = new int[convexHullList.size()][2];
+            convexHullList = rekursiveBerechnung(contourPolygonList);
+        }
+        int i = 0;
+        convexHull = new int[convexHullList.size()][2];
 
-        for(int i = 0; i < convexHullList.size(); i++) {
-            convexHull[i][0] = convexHullList.get(i).x;
-            convexHull[i][1] = convexHullList.get(i).y;
+
+        for(PointAttributes p : convexHullList) {
+            convexHull[i][0] = p.x;
+            convexHull[i][1] = p.y;
+            i++;
+
         }
 
         return convexHull;
+
     }
 
     private LinkedList<PointAttributes> rekursiveBerechnung(LinkedList<PointAttributes> contourPolygonList) {
         ListIterator<PointAttributes> listPositionIterator = this.contourPolygonList.listIterator();
+        PointAttributes a, b, c;
 
         while (listPositionIterator.hasNext()) {
-            int currentIndex = listPositionIterator.nextIndex();
+            listPositionIterator.next();
 
-            PointAttributes currentPoint = listPositionIterator.next();
+            int currentIndex = listPositionIterator.previousIndex();
 
-            if(currentPoint.removeMarker == false) {
-                PointTriple pTriple = getPointTriple(contourPolygonList, currentIndex);
-                testPoints(pTriple.a, pTriple.b, pTriple.c);
+            a = contourPolygonList.get(currentIndex);
+
+            int bIndex = getNextUnmarkedPoint(currentIndex + 1);
+            b = contourPolygonList.get(bIndex);
+
+            int cIndex = getNextUnmarkedPoint(bIndex + 1);
+            c = contourPolygonList.get(cIndex);
+
+            int resetIteratorIndex  = testPoints(a, b, c);
+
+
+            if(resetIteratorIndex != -1) {
+                listPositionIterator = this.contourPolygonList.listIterator(resetIteratorIndex);
             }
+
+
         }
 
         convexHullList = contourPolygonList;
         convexHullList.removeAll(removeList);
+
+
         return convexHullList;
+
     }
 
-    private PointTriple getPointTriple(LinkedList<PointAttributes> contourPolygonList, int currentIndex) {
-        PointTriple pTriple = new PointTriple();
+    private int getNextUnmarkedPoint(int startIndex) {
+        int targetIndex = startIndex;
 
-        pTriple.a = contourPolygonList.get(currentIndex);
+        ListIterator<PointAttributes> pointIterator = this.contourPolygonList.listIterator(targetIndex);
 
-        pTriple.b = (currentIndex + 1 < contourPolygonList.size()) ?
-            contourPolygonList.get(currentIndex + 1) :
-            contourPolygonList.getFirst();
+        while(pointIterator.hasNext()) {
+            targetIndex = pointIterator.nextIndex();
 
-        if (currentIndex + 2 < contourPolygonList.size()) {
-            pTriple.c = contourPolygonList.get(currentIndex + 2);
+            if (pointIterator.next().removeMarker == false) return targetIndex;
         }
-        else if (currentIndex + 1 < contourPolygonList.size()) {
-            pTriple.c = contourPolygonList.getFirst();
+
+        pointIterator = this.contourPolygonList.listIterator(0);
+
+        while(pointIterator.hasNext()) {
+            targetIndex = pointIterator.nextIndex();
+
+            if (pointIterator.next().removeMarker == false) return targetIndex;
         }
-        else {
-            pTriple.c = contourPolygonList.get(1);
-        }
-        return pTriple;
+
+        return targetIndex;
     }
 
-    private void testPoints(PointAttributes a, PointAttributes b, PointAttributes c) {
-        long ergebnis = ((a.x) * (b.y - c.y)) + ((b.x) * (c.y - a.y)) + ((c.x) * (a.y - b.y));
+    private int testPoints(PointAttributes a, PointAttributes b, PointAttributes c) {
 
+        long ergebnis = calcWVT(a, c, b);
         if (ergebnis == 0) {
             System.out.println("Kollineraren Punkt entfernen");
             b.removeMarker = true;
             removeList.add(b);
+            return(contourPolygonList.indexOf(a));
+
         }
-        if (ergebnis < 0) {
+        else if (ergebnis < 0) {
             ListIterator<PointAttributes> findEdgesConvexHullIterator = null;
             PointAttributes d, e;
             int startIndexRemove = this.contourPolygonList.indexOf(b);
             int endIndexRemove;
             int startIndex = this.contourPolygonList.indexOf(b);
-
             if(startIndex != 0) {
                 findEdgesConvexHullIterator = this.contourPolygonList.listIterator(startIndex);
             }
@@ -214,12 +205,15 @@ public class Calculator implements IHullCalculator {
                 if(contourPolygonList.get(startIndex).isExtremePoint) {
                     endIndexRemove = startIndex;
                     removePoints(startIndexRemove, endIndexRemove);
+                    return endIndexRemove;
                 }
                 else {
-                    startIndex = contourPolygonList.indexOf(contourPolygonList.getLast());
+                    startIndex = contourPolygonList.size() -1;
+
                     if(contourPolygonList.get(startIndex).isExtremePoint) {
                         endIndexRemove = startIndex;
                         removePoints(startIndexRemove, endIndexRemove);
+                        return endIndexRemove;
                     }
                     else {
                         findEdgesConvexHullIterator = this.contourPolygonList.listIterator(startIndex);
@@ -235,15 +229,16 @@ public class Calculator implements IHullCalculator {
                         d = findEdgesConvexHullIterator.previous();
                     }
                     else {
-                        int indexOfLastElement = contourPolygonList.indexOf(contourPolygonList.getLast());
-                        findEdgesConvexHullIterator = this.contourPolygonList.listIterator(indexOfLastElement);
+                        findEdgesConvexHullIterator = this.contourPolygonList.listIterator(contourPolygonList.size() -1);
                     }
                 }
 
                 if(d.isExtremePoint) {
                     endIndexRemove = contourPolygonList.indexOf(d);
                     removePoints(startIndexRemove, endIndexRemove);
+                    return endIndexRemove;
                 }
+
                 else if (findEdgesConvexHullIterator.hasPrevious()) {
                     e = findEdgesConvexHullIterator.previous();
                     while( e.removeMarker == true) {
@@ -251,20 +246,21 @@ public class Calculator implements IHullCalculator {
                             e = findEdgesConvexHullIterator.previous();
                         }
                         else {
-                            findEdgesConvexHullIterator = this.contourPolygonList.listIterator(contourPolygonList.indexOf(contourPolygonList.getLast()));
+                            findEdgesConvexHullIterator = this.contourPolygonList.listIterator(contourPolygonList.size() - 1);
                         }
                     }
 
                     if(e.isExtremePoint) {
                         endIndexRemove = contourPolygonList.indexOf(d);
                         removePoints(startIndexRemove, endIndexRemove);
+                        return endIndexRemove;
                     }
                     else {
-                        long ergebnis2 = ((e.x) * (d.y - c.y)) + ((d.x) * (c.y - e.y)) + ((c.x) * (e.y - d.y));
-
+                        long ergebnis2 = calcWVT(e, c, d);
                         if (ergebnis2 > 0) {
                             endIndexRemove = contourPolygonList.indexOf(d);
                             removePoints(startIndexRemove, endIndexRemove);
+                            return endIndexRemove;
                         }
                         else {
                             findEdgesConvexHullIterator.next();
@@ -273,6 +269,8 @@ public class Calculator implements IHullCalculator {
                 }
             }
         }
+
+        return -1;
     }
 
     private void removePoints(int startIndexRemove, int endIndexRemove) {
@@ -303,68 +301,199 @@ public class Calculator implements IHullCalculator {
 
     @Override
     public int[][] getDiameter() {
-        // TODO Auto-generated method stub
-        return null;
+        //getBiggestDiameter();
+        int size = convexHullList.size();
+        PointPair pointPair;
+
+        switch(size) {
+            case 0: return new int[2][2];
+            case 1:
+            case 2: pointPair = getSimplePointDiameter(size); break;
+            default: pointPair = getComplexDiameter();
+        }
+
+        pointPair.printToConsole();
+        return pointPair.getDiameterArray();
     }
 
-    @Override
-    public double getDiameterLength() {
-        // TODO Auto-generated method stub
-        return 0;
+    private PointPair getSimplePointDiameter(int size) {
+        PointPair pointPair = new PointPair();
+        pointPair.pMin = convexHullList.getFirst();
+        pointPair.pMin = (size == 1) ? convexHullList.getFirst() : convexHullList.getLast();
+        return pointPair;
     }
 
-    @Override
-    public String getEmail() {
-        // TODO Auto-generated method stub
-        String eMail = "laura-pannier@t-online.de";
+    private PointPair getComplexDiameter() {
+        PointPair resultPointPair = new PointPair();
+        PointPair startPointPair = getStartPointPair();
+        PointPair currentPointPair = startPointPair.copy();
 
-        return eMail;
+        int indexOfpMin = convexHullList.indexOf(startPointPair.pMin);
+        int indexOfpMax = convexHullList.indexOf(startPointPair.pMax);
+
+        ListIterator<PointAttributes> pointIteratorFromMin = this.convexHullList.listIterator(indexOfpMin);
+        ListIterator<PointAttributes> pointIteratorFromMax = this.convexHullList.listIterator(indexOfpMax);
+
+        boolean setMinNext = false;
+        boolean setMaxNext = false;
+
+        while(currentPointPair.pMax != startPointPair.pMin && currentPointPair.pMin != startPointPair.pMax) {
+            int indexCurrentA = (pointIteratorFromMax.hasNext()) ? pointIteratorFromMax.nextIndex() : 0;
+            PointAttributes a = convexHullList.get(indexCurrentA);
+            PointAttributes nachA = (indexCurrentA + 1 < convexHullList.size()) ?
+                    convexHullList.get(indexCurrentA + 1) : convexHullList.get(0);
+
+            int indexCurrentB = (pointIteratorFromMin.hasNext()) ? pointIteratorFromMin.nextIndex() : 0;
+            PointAttributes b = convexHullList.get(indexCurrentB);
+            PointAttributes nachB = (indexCurrentB + 1 < convexHullList.size()) ?
+                    convexHullList.get(indexCurrentB + 1) : convexHullList.get(0);
+
+            int x = b.x + a.x - nachB.x;
+            int y = b.y + a.y - nachB.y;
+            PointAttributes c = new PointAttributes(x,y);
+
+            // a, nachA, c
+
+            int wvt = calcWVT(a, c, nachA);
+
+            if(wvt > 0) {
+                wvtBiggerZero(pointIteratorFromMax, currentPointPair);
+            }
+            else if(wvt < 0) {
+                wvtSmallerZero(pointIteratorFromMin, currentPointPair);
+            }
+            else if(wvt == 0) {
+                long lengthDiameterFirstPair = ((a.x - nachA.x) * (a.x - nachA.x)) + ((a.y - nachA.y) * (a.y - nachA.y));
+                long lengthDiameterSecondPair = ((b.x - nachB.x) * (b.x - nachB.x)) + ((startPointPair.pMax.y - nachB.y) * (startPointPair.pMax.y - nachB.y));
+
+                if(lengthDiameterFirstPair < lengthDiameterSecondPair) {
+                    if(!pointIteratorFromMax.hasNext()) {
+                        pointIteratorFromMax = this.convexHullList.listIterator(convexHullList.indexOf(currentPointPair.pMax));
+                    }
+
+                    setMinNext = true;
+                    currentPointPair.pMax = pointIteratorFromMax.next();
+                }
+                else{
+                    if(!pointIteratorFromMin.hasNext()) {
+                        pointIteratorFromMin = this.convexHullList.listIterator(convexHullList.indexOf(currentPointPair.pMin));
+                    }
+
+                    setMaxNext = true;
+                    currentPointPair.pMin = pointIteratorFromMin.next();
+                }
+            }
+
+            currentPointPair = getBiggerDiameter(resultPointPair, currentPointPair);
+
+            if(setMinNext) {
+                setMinNext = false;
+                wvtSmallerZero(pointIteratorFromMin, currentPointPair);
+
+                currentPointPair = getBiggerDiameter(resultPointPair, currentPointPair);
+            }
+
+            if(setMaxNext) {
+                if(!pointIteratorFromMax.hasNext()) {
+                    pointIteratorFromMax = this.convexHullList.listIterator(convexHullList.indexOf(currentPointPair.pMax));
+                }
+
+                setMaxNext = false;
+                currentPointPair.pMax = pointIteratorFromMax.next();
+                currentPointPair = getBiggerDiameter(resultPointPair, currentPointPair);
+            }
+        }
+
+        while (currentPointPair.pMax == startPointPair.pMin && currentPointPair.pMin != startPointPair.pMax) {
+            if(!pointIteratorFromMin.hasNext()) {
+                pointIteratorFromMin = this.convexHullList.listIterator(convexHullList.indexOf(currentPointPair.pMin));
+            }
+
+            currentPointPair.pMin = pointIteratorFromMin.next();
+            resultPointPair = getBiggerDiameter(resultPointPair, currentPointPair);
+        }
+
+        while (currentPointPair.pMax != startPointPair.pMin && currentPointPair.pMin == startPointPair.pMax) {
+            if(!pointIteratorFromMax.hasNext()) {
+                pointIteratorFromMax = this.convexHullList.listIterator(convexHullList.indexOf(currentPointPair.pMax));
+            }
+
+            currentPointPair.pMax = pointIteratorFromMax.next();
+            resultPointPair = getBiggerDiameter(resultPointPair, currentPointPair);
+        }
+
+        return resultPointPair;
     }
 
-    @Override
-    public String getMatrNr() {
-        // TODO Auto-generated method stub
-        String matrNr = "5371210";
+    private PointPair getStartPointPair() {
+        PointPair startPointPair = new PointPair();
 
-        return matrNr;
+
+        startPointPair.pMin = convexHullList.getFirst();
+        startPointPair.pMax = convexHullList.getFirst();
+
+        for(PointAttributes point : convexHullList) {
+            if(point.comparedTo(startPointPair.pMax) == 1) startPointPair.pMax = point;
+            if(point.comparedTo(startPointPair.pMin) == -1) startPointPair.pMin = point;
+        }
+        return startPointPair;
     }
 
-    @Override
-    public String getName() {
-        // TODO Auto-generated method stub
-        String name = "Laura Pannier";
-
-        return name;
+    private void wvtSmallerZero(ListIterator<PointAttributes> pointIteratorFromMin, PointPair currentPointPair) {
+        if(pointIteratorFromMin.hasNext()) {
+            if(pointIteratorFromMin.nextIndex() == 0) {
+                pointIteratorFromMin.next();
+            }
+            currentPointPair.pMin = pointIteratorFromMin.next();
+        }
+        else {
+            currentPointPair.pMin = convexHullList.get(0);
+            pointIteratorFromMin = this.convexHullList.listIterator(convexHullList.indexOf(currentPointPair.pMin));
+        }
     }
 
-    @Override
-    public int[][] getQuadrangle() {
-        // TODO Auto-generated method stub
-        return null;
+    private void wvtBiggerZero(ListIterator<PointAttributes> pointIteratorFromMax, PointPair currentPointPair) {
+        if(pointIteratorFromMax.hasNext()) {
+            currentPointPair.pMax = pointIteratorFromMax.next();
+        }
+        else {
+            currentPointPair.pMax = convexHullList.get(0);
+            int pMaxIndex = convexHullList.indexOf(currentPointPair.pMax);
+            pointIteratorFromMax = this.convexHullList.listIterator(pMaxIndex);
+        }
     }
 
-    @Override
-    public double getQuadrangleArea() {
-        // TODO Auto-generated method stub
-        return 0;
+    private PointPair getBiggerDiameter(PointPair resultPointPair, PointPair currentPointPair) {
+        int resultDistance = resultPointPair.calcDistanceSquared();
+        int currentDistance = currentPointPair.calcDistanceSquared();
+
+        return (currentDistance > resultDistance) ? currentPointPair.copy() : resultPointPair;
     }
 
-    @Override
-    public int[][] getTriangle() {
-        // TODO Auto-generated method stub
-        return null;
+    private int calcWVT(PointAttributes a, PointAttributes c, PointAttributes nachA) {
+        return ((a.x) * (nachA.y - c.y)) + ((nachA.x) * (c.y - a.y)) + ((c.x) * (a.y - nachA.y));
     }
 
-    @Override
-    public double getTriangleArea() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
+    public void getMyDiameter() {
+        long myDiameter = 0;
+        PointAttributes p1 = null;
+        PointAttributes p2 = null;
 
+        for (int i = 0; i < convexHullList.size(); i++) {
+            for (int j = i + 1; j < convexHullList.size(); j++) {
+                long deltaX = (convexHullList.get(i).x - convexHullList.get(j).x);
+                long deltaY = (convexHullList.get(i).y - convexHullList.get(j).y);
+
+                long thisDiameter = (deltaX * deltaX) + (deltaY * deltaY);
+
+                if (thisDiameter > myDiameter) {
+                    myDiameter = thisDiameter;
+                    p1 = convexHullList.get(i);
+                    p2 = convexHullList.get(j);
+                }
+            }
+        }
+
+        System.out.println("getBiggestDiameter() -> " + myDiameter + " at " + "[" + p1.x + ";" + p1.y  + "]," + "[" + p2.x + ";" + p2.y  + "]");
+    }
 }
-
-
-
-
-
-
