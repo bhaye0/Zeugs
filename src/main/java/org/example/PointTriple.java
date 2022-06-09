@@ -1,7 +1,7 @@
 package org.example;
 
 public class PointTriple {
-    public PointAttributes a;
-    public PointAttributes b;
-    public PointAttributes c;
+    public Point a;
+    public Point b;
+    public Point c;
 }

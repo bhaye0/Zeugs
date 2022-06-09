@@ -4,18 +4,18 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 
 public class PointListCircleIterator {
-    private LinkedList<PointAttributes> points;
-    private ListIterator<PointAttributes> it;
+    private LinkedList<Point> points;
+    private ListIterator<Point> it;
 
-    private PointAttributes currentPoint;
+    private Point currentPoint;
     private int currentIndex = 0;
 
-    public PointListCircleIterator(LinkedList<PointAttributes> points) {
+    public PointListCircleIterator(LinkedList<Point> points) {
         this.points = points;
         this.it = points.listIterator();
     }
 
-    public PointAttributes next() {
+    public Point next() {
         if (!it.hasNext()) {
             it = points.listIterator();
         }
@@ -26,7 +26,7 @@ public class PointListCircleIterator {
         return currentPoint;
     }
 
-    public PointAttributes previous() {
+    public Point previous() {
         if (!it.hasPrevious()) {
             int lastIndex = points.size() -1 ;
             it = points.listIterator(lastIndex);
@@ -38,7 +38,7 @@ public class PointListCircleIterator {
         return currentPoint;
     }
 
-    public PointAttributes current() {
+    public Point current() {
         return currentPoint;
     }
 
